@@ -1,0 +1,21 @@
+.App {
+  font-family: Arial, sans-serif;
+  padding: 2rem;
+}
+
+input {
+  margin-right: 1rem;
+}
+
+.gallery {
+  margin-top: 2rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.preview {
+  max-width: 200px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+}
