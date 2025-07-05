@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"encoding/json"
+	"go-image-api/middleware"
 	"go-image-api/models"
 	"log"
 	"net/http"
@@ -66,4 +67,28 @@ func GetAllImages(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(images)
+}
+
+func DeletePost(w http.ResponseWriter, r *http.Request) {
+	postID := r.URL.Query().Get("id")
+	userEmail := r.Context().Value(middleware.UserEmailKey).(string)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// Check post owner
+	var post models.Post
+	err := imageCollection.FindOne(ctx, bson.M{"_id": postID}).Decode(&post)
+	if err != nil || post.CreatorInfo.Email != userEmail {
+		http.Error(w, "Unauthorized or post not found", http.StatusUnauthorized)
+		return
+	}
+
+	_, err = imageCollection.DeleteOne(ctx, bson.M{"_id": postID})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }

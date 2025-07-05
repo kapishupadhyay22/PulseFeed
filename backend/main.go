@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"go-image-api/controllers"
+	"go-image-api/middleware"
 	"log"
 	"net/http"
 	"time"
@@ -50,22 +51,31 @@ func main() {
 	controllers.InitCommentController(client)
 	controllers.InitLikeController(client)
 	controllers.InitImageController(client)
-
+	controllers.InitAuthController(client)
+	
 	router := mux.NewRouter()
+	protected := router.PathPrefix("/").Subrouter()
+	protected.Use(middleware.AuthMiddleware)
+
+	router.HandleFunc("/register", controllers.Register).Methods("POST")
+	router.HandleFunc("/login", controllers.Login).Methods("POST")
+	router.HandleFunc("/post", controllers.GetAllImages).Methods("GET")
+	router.HandleFunc("/comments", controllers.GetCommentsByPostID).Methods("GET")
+	router.HandleFunc("/likes/count", controllers.GetLikeCountByPostID).Methods("GET")
+	router.HandleFunc("/likes/users", controllers.GetLikersByPostID).Methods("GET")
 	router.HandleFunc("/user", controllers.CreateUser).Methods("POST")
 	router.HandleFunc("/user", controllers.DeleteUser).Methods("DELETE")
 
-	router.HandleFunc("/comment", controllers.CreateComment).Methods("POST")
-	router.HandleFunc("/comment", controllers.DeleteComment).Methods("DELETE")
-	router.HandleFunc("/comments", controllers.GetCommentsByPostID).Methods("GET")
+	protected.HandleFunc("/user", controllers.CreateUser).Methods("POST", "OPTIONS")
+	protected.HandleFunc("/user", controllers.DeleteUser).Methods("DELETE", "OPTIONS")
 
-	router.HandleFunc("/like", controllers.CreateLike).Methods("POST")
-	router.HandleFunc("/like", controllers.DeleteLike).Methods("DELETE")
-	router.HandleFunc("/likes/count", controllers.GetLikeCountByPostID).Methods("GET")
-	router.HandleFunc("/likes/users", controllers.GetLikersByPostID).Methods("GET")
+	protected.HandleFunc("/comment", controllers.CreateComment).Methods("POST", "OPTIONS")
+	protected.HandleFunc("/comment", controllers.DeleteComment).Methods("DELETE", "OPTIONS")
 
-	router.HandleFunc("/upload", controllers.UploadImage).Methods("POST")
-	router.HandleFunc("/post", controllers.GetAllImages).Methods("GET")
+	protected.HandleFunc("/like", controllers.CreateLike).Methods("POST", "OPTIONS")
+	protected.HandleFunc("/like", controllers.DeleteLike).Methods("DELETE", "OPTIONS")
+
+	protected.HandleFunc("/upload", controllers.UploadImage).Methods("POST", "OPTIONS")
 
 	fmt.Println("Server started at http://localhost:8080")
 	log.Fatal(http.ListenAndServe(":8080", enableCORS(router)))
