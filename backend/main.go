@@ -31,7 +31,7 @@ func enableCORS(next http.Handler) http.Handler {
 		// Allow specific headers
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 		// Allow specific methods
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS, DELETE")
 
 		// Handle preflight OPTIONS request
 		if r.Method == http.MethodOptions {
@@ -57,9 +57,12 @@ func main() {
 
 	router.HandleFunc("/comment", controllers.CreateComment).Methods("POST")
 	router.HandleFunc("/comment", controllers.DeleteComment).Methods("DELETE")
+	router.HandleFunc("/comments", controllers.GetCommentsByPostID).Methods("GET")
 
 	router.HandleFunc("/like", controllers.CreateLike).Methods("POST")
 	router.HandleFunc("/like", controllers.DeleteLike).Methods("DELETE")
+	router.HandleFunc("/likes/count", controllers.GetLikeCountByPostID).Methods("GET")
+	router.HandleFunc("/likes/users", controllers.GetLikersByPostID).Methods("GET")
 
 	router.HandleFunc("/upload", controllers.UploadImage).Methods("POST")
 	router.HandleFunc("/post", controllers.GetAllImages).Methods("GET")

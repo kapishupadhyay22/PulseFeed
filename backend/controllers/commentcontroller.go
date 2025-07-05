@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"go-image-api/models"
 	"net/http"
 	"time"
@@ -18,6 +19,7 @@ func InitCommentController(client *mongo.Client) {
 }
 
 func CreateComment(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("Posting a comment")
 	var comment models.Comment
 	err := json.NewDecoder(r.Body).Decode(&comment)
 	if err != nil {
@@ -54,4 +56,34 @@ func DeleteComment(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+func GetCommentsByPostID(w http.ResponseWriter, r *http.Request) {
+	postID := r.URL.Query().Get("postID")
+	if postID == "" {
+		http.Error(w, "postID is required", http.StatusBadRequest)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	cursor, err := commentCollection.Find(ctx, bson.M{"postID": postID})
+	if err != nil {
+		http.Error(w, "Error retrieving comments: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer cursor.Close(ctx)
+
+	var comments []models.Comment
+	for cursor.Next(ctx) {
+		var comment models.Comment
+		if err := cursor.Decode(&comment); err != nil {
+			continue
+		}
+		comments = append(comments, comment)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(comments)
 }
