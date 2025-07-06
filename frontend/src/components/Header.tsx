@@ -1,5 +1,5 @@
 import React from 'react';
-import { Camera, Heart, Home, Search, User, LogOut } from 'lucide-react';
+import { Camera, Home, User, LogOut } from 'lucide-react';
 
 interface HeaderProps {
   onCreatePost: () => void;

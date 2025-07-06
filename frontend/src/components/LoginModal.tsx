@@ -11,7 +11,7 @@ interface LoginModalProps {
 
 export const LoginModal: React.FC<LoginModalProps> = ({
   isOpen,
-  onClose,
+  // onClose,
   onLogin,
   onRegister
 }) => {
@@ -83,7 +83,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         <div className="p-6">
           <div className="text-center mb-6">
             <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              {isLoginMode ? 'Welcome Back' : 'Join SocialHub'}
+              {isLoginMode ? 'Welcome Back' : 'Join PulseFeed'}
             </h2>
             <p className="text-gray-600">
               {isLoginMode ? 'Sign in to continue to your account' : 'Create your account to get started'}
