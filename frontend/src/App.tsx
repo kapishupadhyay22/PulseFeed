@@ -5,34 +5,97 @@ import { PostCard } from './components/PostCard';
 import { ProfilePage } from './components/ProfilePage';
 import { EditProfileModal } from './components/EditProfileModal';
 import { LoadingSpinner } from './components/LoadingSpinner';
+import { LoginModal } from './components/LoginModal';
 import { useSocialMedia } from './hooks/useSocialMedia';
+import { useAuth } from './hooks/useAuth';
 import { AlertCircle } from 'lucide-react';
+import { User } from './types';
 
 function App() {
-  const [isCreatePostModalOpen, setIsCreatePostModalOpen] = useState(false);
-  const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false);
-  const [currentPage, setCurrentPage] = useState<'home' | 'profile'>('home');
-  
+  const { user, loading: authLoading, login, register, logout, isAuthenticated } = useAuth();
   const {
     posts,
     loading,
     error,
-    currentUser,
     createPost,
+    deletePost,
     toggleLike,
     addComment,
     deleteComment,
+    editComment,
     getPostLikes,
     getPostComments,
     isPostLiked
-  } = useSocialMedia();
+  } = useSocialMedia(user || { id: '', name: '', email: '' });
+
+  const [isCreatePostModalOpen, setIsCreatePostModalOpen] = useState(false);
+  const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState<'home' | 'profile'>('home');
+  const [viewingProfile, setViewingProfile] = useState<User | null>(null);
+
+  // Show login modal if not authenticated
+  React.useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      setIsLoginModalOpen(true);
+    } else if (isAuthenticated) {
+      setIsLoginModalOpen(false);
+    }
+  }, [authLoading, isAuthenticated]);
 
   const handleEditProfile = (userData: { name: string; email: string }) => {
     // In a real app, this would update the user data via API
     console.log('Updating user profile:', userData);
   };
 
-  const userPosts = posts.filter(post => post.creatorInfo.email === currentUser.email);
+  const handleViewProfile = (email: string) => {
+    if (email === user?.email) {
+      setCurrentPage('profile');
+      setViewingProfile(null);
+    } else {
+      // In a real app, fetch user data by email
+      const profileUser: User = {
+        id: email,
+        name: email.split('@')[0],
+        email: email,
+        bio: 'This is a sample bio for the user.',
+        joining: '2023-01-15'
+      };
+      setViewingProfile(profileUser);
+      setCurrentPage('profile');
+    }
+  };
+
+  const handleBackToFeed = () => {
+    setCurrentPage('home');
+    setViewingProfile(null);
+  };
+
+  const userPosts = posts.filter(post => {
+    const targetEmail = viewingProfile?.email || user?.email;
+    return post.creatorInfo.email === targetEmail;
+  });
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <LoadingSpinner />
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <LoginModal
+          isOpen={isLoginModalOpen}
+          onClose={() => {}} // Empty function since we don't want to close it
+          onLogin={login}
+          onRegister={register}
+        />
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -40,7 +103,9 @@ function App() {
         <Header 
           onCreatePost={() => setIsCreatePostModalOpen(true)} 
           onNavigate={setCurrentPage}
+          onLogout={logout}
           currentPage={currentPage}
+          currentUser={user!}
         />
         <LoadingSpinner />
       </div>
@@ -53,7 +118,9 @@ function App() {
         <Header 
           onCreatePost={() => setIsCreatePostModalOpen(true)} 
           onNavigate={setCurrentPage}
+          onLogout={logout}
           currentPage={currentPage}
+          currentUser={user!}
         />
         <div className="max-w-2xl mx-auto pt-8 px-4">
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center space-x-3 animate-fadeIn">
@@ -73,7 +140,9 @@ function App() {
       <Header 
         onCreatePost={() => setIsCreatePostModalOpen(true)} 
         onNavigate={setCurrentPage}
+        onLogout={logout}
         currentPage={currentPage}
+        currentUser={user!}
       />
       
       {currentPage === 'home' ? (
@@ -98,10 +167,13 @@ function App() {
                 >
                   <PostCard
                     post={post}
-                    currentUser={currentUser}
+                    currentUser={user!}
                     onLike={toggleLike}
                     onComment={addComment}
                     onDeleteComment={deleteComment}
+                    onEditComment={editComment}
+                    onDeletePost={deletePost}
+                    onViewProfile={handleViewProfile}
                     isLiked={isPostLiked(post.id)}
                     likesData={getPostLikes(post.id)}
                     comments={getPostComments(post.id)}
@@ -113,9 +185,11 @@ function App() {
         </main>
       ) : (
         <ProfilePage
-          currentUser={currentUser}
+          user={viewingProfile || user!}
           userPosts={userPosts}
+          isOwnProfile={!viewingProfile}
           onEditProfile={() => setIsEditProfileModalOpen(true)}
+          onBack={handleBackToFeed}
         />
       )}
 
@@ -123,13 +197,13 @@ function App() {
         isOpen={isCreatePostModalOpen}
         onClose={() => setIsCreatePostModalOpen(false)}
         onCreatePost={createPost}
-        currentUser={currentUser}
+        currentUser={user!}
       />
 
       <EditProfileModal
         isOpen={isEditProfileModalOpen}
         onClose={() => setIsEditProfileModalOpen(false)}
-        currentUser={currentUser}
+        currentUser={user!}
         onSave={handleEditProfile}
       />
     </div>

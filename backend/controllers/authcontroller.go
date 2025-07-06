@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"encoding/json"
+	"go-image-api/middleware"
 	"go-image-api/models"
 	"net/http"
 	"time"
@@ -13,7 +14,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-var jwtKey = []byte("cloudSEK-intern-assignment")
+// var jwtKey = []byte("cloudSEK-intern-assignment")
 var authUserCollection *mongo.Collection
 
 func InitAuthController(client *mongo.Client) {
@@ -66,7 +67,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		"exp":   time.Now().Add(time.Hour * 24).Unix(),
 	})
 
-	tokenStr, _ := token.SignedString(jwtKey)
+	tokenStr, _ := token.SignedString(middleware.JwtKey)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"token": tokenStr})
 }

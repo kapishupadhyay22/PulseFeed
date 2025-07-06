@@ -77,7 +77,7 @@ func GetLikersByPostID(w http.ResponseWriter, r *http.Request) {
 	}
 	defer cursor.Close(ctx)
 
-	var likers []models.User
+	var likers []models.CreatedBy
 	for cursor.Next(ctx) {
 		var like models.Likes
 		if err := cursor.Decode(&like); err != nil {

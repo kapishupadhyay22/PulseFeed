@@ -27,20 +27,15 @@ func connectMongoDB() *mongo.Client {
 }
 func enableCORS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Allow requests from all origins (for development)
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		// Allow specific headers
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-		// Allow specific methods
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS, DELETE")
+		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:5173")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 
-		// Handle preflight OPTIONS request
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusOK)
 			return
 		}
 
-		// Continue to next handler
 		next.ServeHTTP(w, r)
 	})
 }
@@ -52,10 +47,8 @@ func main() {
 	controllers.InitLikeController(client)
 	controllers.InitImageController(client)
 	controllers.InitAuthController(client)
-	
+
 	router := mux.NewRouter()
-	protected := router.PathPrefix("/").Subrouter()
-	protected.Use(middleware.AuthMiddleware)
 
 	router.HandleFunc("/register", controllers.Register).Methods("POST")
 	router.HandleFunc("/login", controllers.Login).Methods("POST")
@@ -64,19 +57,19 @@ func main() {
 	router.HandleFunc("/likes/count", controllers.GetLikeCountByPostID).Methods("GET")
 	router.HandleFunc("/likes/users", controllers.GetLikersByPostID).Methods("GET")
 	router.HandleFunc("/user", controllers.CreateUser).Methods("POST")
-	router.HandleFunc("/user", controllers.DeleteUser).Methods("DELETE")
+	router.HandleFunc("/like", controllers.CreateLike).Methods("POST", "OPTIONS")
+	router.HandleFunc("/like", controllers.DeleteLike).Methods("DELETE", "OPTIONS")
+	router.HandleFunc("/comment", controllers.CreateComment).Methods("POST", "OPTIONS")
 
-	protected.HandleFunc("/user", controllers.CreateUser).Methods("POST", "OPTIONS")
+	protected := router.PathPrefix("/").Subrouter()
+	protected.Use(middleware.AuthMiddleware)
+
+	protected.HandleFunc("/user", controllers.GetAuthenticatedUser).Methods("GET", "OPTIONS")
 	protected.HandleFunc("/user", controllers.DeleteUser).Methods("DELETE", "OPTIONS")
 
-	protected.HandleFunc("/comment", controllers.CreateComment).Methods("POST", "OPTIONS")
 	protected.HandleFunc("/comment", controllers.DeleteComment).Methods("DELETE", "OPTIONS")
-
-	protected.HandleFunc("/like", controllers.CreateLike).Methods("POST", "OPTIONS")
-	protected.HandleFunc("/like", controllers.DeleteLike).Methods("DELETE", "OPTIONS")
-
-	protected.HandleFunc("/upload", controllers.UploadImage).Methods("POST", "OPTIONS")
-
+	protected.HandleFunc("/post", controllers.UploadImage).Methods("POST", "OPTIONS")
+	protected.HandleFunc("/post", controllers.DeletePost).Methods("DELETE")
 	fmt.Println("Server started at http://localhost:8080")
 	log.Fatal(http.ListenAndServe(":8080", enableCORS(router)))
 }

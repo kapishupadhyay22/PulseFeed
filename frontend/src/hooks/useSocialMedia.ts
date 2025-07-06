@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Post, User, Comment } from '../types';
+import { Post, User, Comment, CreatedBy } from '../types';
 import { api } from '../services/api';
 
 const samplePosts: Post[] = [
@@ -27,7 +27,7 @@ const samplePosts: Post[] = [
   },
   {
     id: 'sample-3',
-    text: 'Just finished reading an amazing book on productivity. Highly recommend "Atomic Habits" by James Clear! 📚',
+    text: 'Just finished reading an amazing book on productivity. Highly recommend <b>"Atomic Habits"</b> by <i>James Clear</i>! 📚',
     data: 'https://images.pexels.com/photos/159711/books-bookstore-book-reading-159711.jpeg?auto=compress&cs=tinysrgb&w=800',
     creatorInfo: {
       id: 'sample-user-3',
@@ -38,7 +38,7 @@ const samplePosts: Post[] = [
   },
   {
     id: 'sample-4',
-    text: 'Coffee and code - the perfect combination for a productive morning! ☕️💻',
+    text: '<b>Coffee</b> and <i>code</i> - the perfect combination for a productive morning! ☕️💻',
     data: 'https://images.pexels.com/photos/1181244/pexels-photo-1181244.jpeg?auto=compress&cs=tinysrgb&w=800',
     creatorInfo: {
       id: 'sample-user-4',
@@ -49,18 +49,12 @@ const samplePosts: Post[] = [
   }
 ];
 
-export const useSocialMedia = () => {
+export const useSocialMedia = (currentUser: User) => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [comments, setComments] = useState<{ [postId: string]: Comment[] }>({});
-  const [likes, setLikes] = useState<{ [postId: string]: { count: number; users: User[]; isLiked: boolean } }>({});
+  const [likes, setLikes] = useState<{ [postId: string]: { count: number; users: CreatedBy[]; isLiked: boolean } }>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const currentUser: User = {
-    id: 'current-user',
-    name: 'John Doe',
-    email: 'john@example.com'
-  };
 
   useEffect(() => {
     fetchPosts();
@@ -84,7 +78,7 @@ export const useSocialMedia = () => {
       
       // Initialize empty comments and likes for sample posts
       const emptyComments: { [postId: string]: Comment[] } = {};
-      const emptyLikes: { [postId: string]: { count: number; users: User[]; isLiked: boolean } } = {};
+      const emptyLikes: { [postId: string]: { count: number; users: CreatedBy[]; isLiked: boolean } } = {};
       
       samplePosts.forEach(post => {
         emptyComments[post.id] = [];
@@ -136,7 +130,11 @@ export const useSocialMedia = () => {
       const postData = {
         text,
         data: imageData,
-        creatorInfo: currentUser,
+        creatorInfo: {
+          id: currentUser.id,
+          name: currentUser.name,
+          email: currentUser.email
+        },
         timestamp: Date.now()
       };
       
@@ -152,6 +150,28 @@ export const useSocialMedia = () => {
     }
   };
 
+  const deletePost = async (postId: string) => {
+    try {
+      await api.deletePost(postId);
+      setPosts(prev => prev.filter(post => post.id !== postId));
+      
+      // Clean up comments and likes
+      setComments(prev => {
+        const newComments = { ...prev };
+        delete newComments[postId];
+        return newComments;
+      });
+      setLikes(prev => {
+        const newLikes = { ...prev };
+        delete newLikes[postId];
+        return newLikes;
+      });
+    } catch (err) {
+      setError('Failed to delete post');
+      console.error(err);
+    }
+  };
+
   const toggleLike = async (postId: string) => {
     try {
       const currentLikeState = likes[postId];
@@ -159,7 +179,14 @@ export const useSocialMedia = () => {
       if (currentLikeState?.isLiked) {
         await api.deleteLike(postId, currentUser.email);
       } else {
-        await api.createLike({ postID: postId, creatorInfo: currentUser });
+        await api.createLike({ 
+          postID: postId, 
+          creatorInfo: {
+            id: currentUser.id,
+            name: currentUser.name,
+            email: currentUser.email
+          }
+        });
       }
       
       // Refresh likes for this post
@@ -175,7 +202,11 @@ export const useSocialMedia = () => {
       const commentData = {
         postID: postId,
         text,
-        creatorInfo: currentUser
+        creatorInfo: {
+          id: currentUser.id,
+          name: currentUser.name,
+          email: currentUser.email
+        }
       };
       
       await api.createComment(commentData);
@@ -196,6 +227,16 @@ export const useSocialMedia = () => {
     }
   };
 
+  const editComment = async (commentId: string, text: string, postId: string) => {
+    try {
+      await api.updateComment(commentId, text);
+      await fetchCommentsForPost(postId);
+    } catch (err) {
+      setError('Failed to edit comment');
+      console.error(err);
+    }
+  };
+
   const getPostLikes = (postId: string) => {
     return likes[postId] || { count: 0, users: [], isLiked: false };
   };
@@ -212,11 +253,12 @@ export const useSocialMedia = () => {
     posts,
     loading,
     error,
-    currentUser,
     createPost,
+    deletePost,
     toggleLike,
     addComment,
     deleteComment,
+    editComment,
     getPostLikes,
     getPostComments,
     isPostLiked,

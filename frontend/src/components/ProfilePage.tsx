@@ -1,40 +1,53 @@
 import React, { useState } from 'react';
 import { User, Post } from '../types';
-import { Settings, Grid, Heart, MessageCircle, Calendar, Mail } from 'lucide-react';
+import { Settings, Grid, Heart, MessageCircle, Calendar, Mail, ArrowLeft, Edit2 } from 'lucide-react';
 
 interface ProfilePageProps {
-  currentUser: User;
+  user: User;
   userPosts: Post[];
-  onEditProfile: () => void;
+  isOwnProfile: boolean;
+  onEditProfile?: () => void;
+  onBack: () => void;
 }
 
 export const ProfilePage: React.FC<ProfilePageProps> = ({
-  currentUser,
+  user,
   userPosts,
-  onEditProfile
+  isOwnProfile,
+  onEditProfile,
+  onBack
 }) => {
   const [activeTab, setActiveTab] = useState<'posts' | 'liked'>('posts');
 
-  const formatJoinDate = () => {
-    // Simulate join date
-    const joinDate = new Date(2023, 0, 15);
-    return joinDate.toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'long' 
+  const formatJoinDate = (dateString?: string) => {
+    if (!dateString) return 'Recently joined';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long'
     });
   };
 
-  const totalLikes = userPosts.reduce((acc, post) => acc + (Math.floor(Math.random() * 50) + 1), 0);
+  // const totalLikes = userPosts.reduce((acc, post) => acc + (Math.floor(Math.random() * 50) + 1), 0);
 
   return (
     <div className="max-w-4xl mx-auto pt-8 pb-8 px-4">
+      {/* Back Button */}
+      <button
+        onClick={onBack}
+        className="mb-6 flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors"
+      >
+        <ArrowLeft className="h-5 w-5" />
+        <span>Back to Feed</span>
+      </button>
+
       {/* Profile Header */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 mb-8">
         <div className="flex flex-col md:flex-row items-center md:items-start space-y-6 md:space-y-0 md:space-x-8">
           {/* Profile Picture */}
           <div className="relative">
             <div className="w-32 h-32 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-white text-4xl font-bold shadow-lg">
-              {currentUser.name.charAt(0).toUpperCase()}
+              {user.name.charAt(0).toUpperCase()}
             </div>
             <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-green-500 rounded-full border-4 border-white"></div>
           </div>
@@ -42,16 +55,25 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
           {/* Profile Info */}
           <div className="flex-1 text-center md:text-left">
             <div className="flex flex-col md:flex-row md:items-center md:space-x-4 mb-4">
-              <h1 className="text-3xl font-bold text-gray-900 mb-2 md:mb-0">{currentUser.name}</h1>
-              <button
-                onClick={onEditProfile}
-                className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-6 py-2 rounded-lg font-medium transition-colors"
-              >
-                Edit Profile
-              </button>
-              <button className="text-gray-500 hover:text-gray-700 transition-colors p-2">
-                <Settings className="h-5 w-5" />
-              </button>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2 md:mb-0">{user.name}</h1>
+              {isOwnProfile ? (
+                <div className="flex space-x-2">
+                  <button
+                    onClick={onEditProfile}
+                    className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-6 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2"
+                  >
+                    <Edit2 className="h-4 w-4" />
+                    <span>Edit Profile</span>
+                  </button>
+                  <button className="text-gray-500 hover:text-gray-700 transition-colors p-2">
+                    <Settings className="h-5 w-5" />
+                  </button>
+                </div>
+              ) : (
+                <button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">
+                  Follow
+                </button>
+              )}
             </div>
 
             {/* Stats */}
@@ -60,30 +82,29 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                 <p className="text-2xl font-bold text-gray-900">{userPosts.length}</p>
                 <p className="text-gray-500 text-sm">Posts</p>
               </div>
-              <div className="text-center">
+              {/* <div className="text-center">
                 <p className="text-2xl font-bold text-gray-900">1.2K</p>
                 <p className="text-gray-500 text-sm">Followers</p>
               </div>
               <div className="text-center">
                 <p className="text-2xl font-bold text-gray-900">856</p>
                 <p className="text-gray-500 text-sm">Following</p>
-              </div>
+              </div> */}
             </div>
 
             {/* Bio */}
             <div className="space-y-2">
               <p className="text-gray-700">
-                Passionate about technology, photography, and connecting with amazing people. 
-                Always learning something new! 🚀
+                {user.bio || 'No bio available.'}
               </p>
               <div className="flex items-center justify-center md:justify-start space-x-4 text-sm text-gray-500">
                 <div className="flex items-center space-x-1">
                   <Mail className="h-4 w-4" />
-                  <span>{currentUser.email}</span>
+                  <span>{user.email}</span>
                 </div>
                 <div className="flex items-center space-x-1">
                   <Calendar className="h-4 w-4" />
-                  <span>Joined {formatJoinDate()}</span>
+                  <span>Joined {formatJoinDate(user.joining)}</span>
                 </div>
               </div>
             </div>
@@ -97,11 +118,10 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
           <nav className="flex">
             <button
               onClick={() => setActiveTab('posts')}
-              className={`flex-1 py-4 px-6 text-center font-medium transition-colors ${
-                activeTab === 'posts'
+              className={`flex-1 py-4 px-6 text-center font-medium transition-colors ${activeTab === 'posts'
                   ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
                   : 'text-gray-500 hover:text-gray-700'
-              }`}
+                }`}
             >
               <div className="flex items-center justify-center space-x-2">
                 <Grid className="h-5 w-5" />
@@ -110,11 +130,10 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
             </button>
             <button
               onClick={() => setActiveTab('liked')}
-              className={`flex-1 py-4 px-6 text-center font-medium transition-colors ${
-                activeTab === 'liked'
+              className={`flex-1 py-4 px-6 text-center font-medium transition-colors ${activeTab === 'liked'
                   ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
                   : 'text-gray-500 hover:text-gray-700'
-              }`}
+                }`}
             >
               <div className="flex items-center justify-center space-x-2">
                 <Heart className="h-5 w-5" />
@@ -165,7 +184,9 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                 <div className="text-center py-12">
                   <Grid className="h-16 w-16 text-gray-300 mx-auto mb-4" />
                   <p className="text-gray-500 text-lg">No posts yet</p>
-                  <p className="text-gray-400 text-sm">Share your first post to get started!</p>
+                  <p className="text-gray-400 text-sm">
+                    {isOwnProfile ? "Share your first post to get started!" : "This user hasn't posted anything yet."}
+                  </p>
                 </div>
               )}
             </div>

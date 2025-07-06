@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"go-image-api/middleware"
 	"go-image-api/models"
 	"log"
@@ -78,13 +79,21 @@ func DeletePost(w http.ResponseWriter, r *http.Request) {
 
 	// Check post owner
 	var post models.Post
-	err := imageCollection.FindOne(ctx, bson.M{"_id": postID}).Decode(&post)
+	fmt.Println("id :", postID)
+	objID, err := primitive.ObjectIDFromHex(postID)
+	if err != nil {
+		http.Error(w, "Invalid post ID", http.StatusBadRequest)
+		return
+	}
+	err = imageCollection.FindOne(ctx, bson.M{"_id": objID}).Decode(&post)
+
 	if err != nil || post.CreatorInfo.Email != userEmail {
+		fmt.Println(err)
 		http.Error(w, "Unauthorized or post not found", http.StatusUnauthorized)
 		return
 	}
 
-	_, err = imageCollection.DeleteOne(ctx, bson.M{"_id": postID})
+	_, err = imageCollection.DeleteOne(ctx, bson.M{"_id": objID})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
