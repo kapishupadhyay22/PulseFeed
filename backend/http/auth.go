@@ -1,4 +1,4 @@
-package controllers
+package http
 
 import (
 	"context"
@@ -14,7 +14,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// var jwtKey = []byte("cloudSEK-intern-assignment")
 var authUserCollection *mongo.Collection
 
 func InitAuthController(client *mongo.Client) {
@@ -24,13 +23,13 @@ func InitAuthController(client *mongo.Client) {
 func Register(w http.ResponseWriter, r *http.Request) {
 	var user models.User
 	json.NewDecoder(r.Body).Decode(&user)
-
+	// we can't store passwords as it is, we need to encrpt them before storing it in the DB
 	hash, _ := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
 	user.Password = string(hash)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-
+	// check if the email is already registered
 	_, err := authUserCollection.InsertOne(ctx, user)
 	if err != nil {
 		http.Error(w, "Email already registered", http.StatusConflict)
@@ -69,5 +68,5 @@ func Login(w http.ResponseWriter, r *http.Request) {
 
 	tokenStr, _ := token.SignedString(middleware.JwtKey)
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"token": tokenStr})
+	json.NewEncoder(w).Encode(map[string]string{"token": tokenStr}) // this token will be maintained in the frontend
 }

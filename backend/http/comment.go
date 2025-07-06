@@ -1,4 +1,4 @@
-package controllers
+package http
 
 import (
 	"context"
@@ -9,6 +9,7 @@ import (
 	"time"
 )
 
+// when someone comments on a post
 func CreateComment(w http.ResponseWriter, r *http.Request) {
 	var comment models.Comment
 	err := json.NewDecoder(r.Body).Decode(&comment)
@@ -29,6 +30,7 @@ func CreateComment(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
+// only the owner of a comment can delete
 func DeleteComment(w http.ResponseWriter, r *http.Request) {
 	id := r.URL.Query().Get("id")
 	if id == "" {
@@ -48,6 +50,7 @@ func DeleteComment(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+// the get all the comments done on a post (for feed)
 func GetCommentsByPostID(w http.ResponseWriter, r *http.Request) {
 	postID := r.URL.Query().Get("postID")
 	if postID == "" {
@@ -59,22 +62,10 @@ func GetCommentsByPostID(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 
 	comments, err := platform.CommentsOnPost(ctx, postID)
-
-	// cursor, err := commentCollection.Find(ctx, bson.M{"postID": postID})
 	if err != nil {
 		http.Error(w, "Error retrieving comments: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
-	// defer cursor.Close(ctx)
-
-	// var comments []models.Comment
-	// for cursor.Next(ctx) {
-	// 	var comment models.Comment
-	// 	if err := cursor.Decode(&comment); err != nil {
-	// 		continue
-	// 	}
-	// 	comments = append(comments, comment)
-	// }
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(comments)

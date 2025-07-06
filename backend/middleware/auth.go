@@ -12,8 +12,9 @@ var JwtKey = []byte("your-secret-key")
 
 type contextKey string
 
-const UserEmailKey = contextKey("userEmail")
+const UserEmailKey = contextKey("userEmail") // global variable 
 
+// for JWT Authentication (hooked over protected routes)
 func AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		auth := r.Header.Get("Authorization")

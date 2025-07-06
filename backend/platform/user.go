@@ -25,7 +25,6 @@ func NewUser(ctx context.Context, user models.User) error {
 func DeleteUser(ctx context.Context, email string) error {
 	_, err := userCollection.DeleteOne(ctx, bson.M{"email": email})
 	if err != nil {
-		// http.Error(w, err.Error(), http.StatusInternalServerError)
 		return err
 	}
 

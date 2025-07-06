@@ -1,4 +1,4 @@
-package controllers
+package http
 
 import (
 	"context"
@@ -9,12 +9,7 @@ import (
 	"time"
 )
 
-// var likeCollection *mongo.Collection
-
-// func InitLikeController(client *mongo.Client) {
-// 	likeCollection = client.Database("myDB").Collection("likes")
-// }
-
+// user likes a post
 func CreateLike(w http.ResponseWriter, r *http.Request) {
 	var like models.Likes
 	err := json.NewDecoder(r.Body).Decode(&like)
@@ -35,6 +30,7 @@ func CreateLike(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
+// user unlikes a post
 func DeleteLike(w http.ResponseWriter, r *http.Request) {
 	postID := r.URL.Query().Get("postID")
 	email := r.URL.Query().Get("email")
@@ -47,10 +43,6 @@ func DeleteLike(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	// _, err := likeCollection.DeleteOne(ctx, bson.M{
-	// 	"postID":            postID,
-	// 	"creatorInfo.email": email,
-	// })
 	err := platform.Unlike(ctx, postID, email)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -59,6 +51,7 @@ func DeleteLike(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 }
+
 func GetLikersByPostID(w http.ResponseWriter, r *http.Request) {
 	postID := r.URL.Query().Get("postID")
 	if postID == "" {
@@ -72,25 +65,12 @@ func GetLikersByPostID(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, "Error retrieving likes: "+err.Error(), http.StatusInternalServerError)
 	}
-	// cursor, err := likeCollection.Find(ctx, bson.M{"postID": postID})
-	// if err != nil {
-	// 	http.Error(w, "Error retrieving likes: "+err.Error(), http.StatusInternalServerError)
-	// 	return
-	// }
-	// defer cursor.Close(ctx)
-
-	// var likers []models.CreatedBy
-	// for cursor.Next(ctx) {
-	// 	var like models.Likes
-	// 	if err := cursor.Decode(&like); err != nil {
-	// 		continue
-	// 	}
-	// 	likers = append(likers, like.CreatorInfo)
-	// }
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(likers)
 }
+
+// to get the number of likes
 func GetLikeCountByPostID(w http.ResponseWriter, r *http.Request) {
 	postID := r.URL.Query().Get("postID")
 	if postID == "" {

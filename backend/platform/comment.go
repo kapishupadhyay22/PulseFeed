@@ -14,10 +14,11 @@ func NewCommentsDB(client *mongo.Client) {
 	commentCollection = client.Database("myDB").Collection("comments")
 }
 
+// contains functionality of commenting, deleting and getting all the comments on a post
+
 func NewComment(ctx context.Context, comment models.Comment) error {
 	_, err := commentCollection.InsertOne(ctx, comment)
 	if err != nil {
-		// http.Error(w, err.Error(), http.StatusInternalServerError)
 		return err
 	}
 	return nil
@@ -26,7 +27,6 @@ func NewComment(ctx context.Context, comment models.Comment) error {
 func DeleteComment(ctx context.Context, id string) error {
 	_, err := commentCollection.DeleteOne(ctx, bson.M{"_id": id})
 	if err != nil {
-		// http.Error(w, err.Error(), http.StatusInternalServerError)
 		return err
 	}
 	return nil
@@ -35,7 +35,6 @@ func DeleteComment(ctx context.Context, id string) error {
 func CommentsOnPost(ctx context.Context, postID string) ([]models.Comment, error) {
 	cursor, err := commentCollection.Find(ctx, bson.M{"postID": postID})
 	if err != nil {
-		// http.Error(w, "Error retrieving comments: "+err.Error(), http.StatusInternalServerError)
 		return nil, err
 	}
 	defer cursor.Close(ctx)

@@ -16,21 +16,22 @@ func NewPostDB(client *mongo.Client) {
 	postCollection = client.Database("myDB").Collection("images")
 }
 
+
+// to upload a post
 func NewPost(ctx context.Context, post models.Post) (*mongo.InsertOneResult, error) {
 	res, err := postCollection.InsertOne(ctx, post)
 	if err != nil {
-		// http.Error(w, err.Error(), http.StatusInternalServerError)
 		return nil, err
 	}
 	return res, nil
 
 }
 
+// for feed
 func GetAllPosts(ctx context.Context) ([]models.Post, error) {
 	var posts []models.Post
 	cursor, err := postCollection.Find(ctx, bson.M{})
 	if err != nil {
-		// http.Error(w, err.Error(), http.StatusInternalServerError)
 		return nil, err
 	}
 	defer cursor.Close(ctx)
@@ -51,19 +52,16 @@ func DeletePost(ctx context.Context, postID string, userEmail string) error {
 	var post models.Post
 	objID, err := primitive.ObjectIDFromHex(postID)
 	if err != nil {
-		// http.Error(w, "Invalid post ID", http.StatusBadRequest)
 		return err
 	}
 	err = postCollection.FindOne(ctx, bson.M{"_id": objID}).Decode(&post)
 
 	if err != nil || post.CreatorInfo.Email != userEmail {
-		// http.Error(w, "Unauthorized or post not found", http.StatusUnauthorized)
 		return err
 	}
 
 	_, err = postCollection.DeleteOne(ctx, bson.M{"_id": objID})
 	if err != nil {
-		// http.Error(w, err.Error(), http.StatusInternalServerError)
 		return err
 	}
 	return nil

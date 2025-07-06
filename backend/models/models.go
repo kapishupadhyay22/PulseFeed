@@ -9,12 +9,14 @@ type User struct {
 	JoiningDate string `json:"joining" bson:"joining"`
 }
 
+// to track the owner of posts, comments and likes
 type CreatedBy struct {
 	ID    string `json:"id" bson:"_id,omitempty"`
 	Name  string `json:"name" bson:"name"`
 	Email string `json:"email" bson:"email"`
 }
 
+// the posts (text + image)
 type Post struct {
 	ID          string    `json:"id" bson:"_id,omitempty"`
 	Text        string    `json:"text" bson:"text"`
@@ -23,6 +25,7 @@ type Post struct {
 	Timestamp   int64     `json:"timestamp" json:"timestamp"`
 }
 
+// PostID defines which post has the comment
 type Comment struct {
 	ID          string    `json:"id" bson:"_id,omitempty"`
 	PostID      string    `json:"postID" bson:"postID"`

@@ -1,4 +1,4 @@
-package controllers
+package http
 
 import (
 	"context"
@@ -10,12 +10,7 @@ import (
 	"time"
 )
 
-// var userCollection *mongo.Collection
-
-// func NewUserDB(client *mongo.Client) {
-// 	userCollection = client.Database("myDB").Collection("users")
-// }
-
+// the signup functionality
 func CreateUser(w http.ResponseWriter, r *http.Request) {
 	var user models.User
 	err := json.NewDecoder(r.Body).Decode(&user)
@@ -54,6 +49,7 @@ func DeleteUser(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+// when someone open his/her profile 
 func GetAuthenticatedUser(w http.ResponseWriter, r *http.Request) {
 	authenticatedEmail, ok := r.Context().Value(middleware.UserEmailKey).(string)
 	if !ok || authenticatedEmail == "" {

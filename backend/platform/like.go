@@ -40,7 +40,6 @@ func Unlike(ctx context.Context, postID string, email string) error {
 func LikerOfPost(ctx context.Context, postID string) ([]models.CreatedBy, error) {
 	cursor, err := likeCollection.Find(ctx, bson.M{"postID": postID})
 	if err != nil {
-		// http.Error(w, "Error retrieving likes: "+err.Error(), http.StatusInternalServerError)
 		return nil, err
 	}
 	defer cursor.Close(ctx)
