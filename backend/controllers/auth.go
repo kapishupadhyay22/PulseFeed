@@ -18,7 +18,7 @@ import (
 var authUserCollection *mongo.Collection
 
 func InitAuthController(client *mongo.Client) {
-	authUserCollection = client.Database("mediaDB").Collection("users")
+	authUserCollection = client.Database("myDB").Collection("users")
 }
 
 func Register(w http.ResponseWriter, r *http.Request) {

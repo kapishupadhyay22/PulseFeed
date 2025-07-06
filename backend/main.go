@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"go-image-api/controllers"
 	"go-image-api/middleware"
+	"go-image-api/platform"
 	"log"
 	"net/http"
 	"time"
@@ -14,20 +15,27 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+// Project made by => Kapish Upadhyay (SWE intern @keploy)
+
+// this connects the mmongoDB in a docker container
 func connectMongoDB() *mongo.Client {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	clientOptions := options.Client().ApplyURI("mongodb://localhost:27017")
+	clientOptions := options.Client().ApplyURI("mongodb://localhost:27017")   // local mongo in the docker
 	client, err := mongo.Connect(ctx, clientOptions)
+	
 	if err != nil {
 		log.Fatal(err)
 	}
+	fmt.Println("Successfully connected to mongoDB")
 	return client
 }
+
+
 func enableCORS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:5173")
+		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:5173")    // I am only allowing the frontend to interact with this api
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 
@@ -41,11 +49,11 @@ func enableCORS(next http.Handler) http.Handler {
 }
 
 func main() {
-	client := connectMongoDB()
-	controllers.InitUserController(client)
-	controllers.InitCommentController(client)
-	controllers.InitLikeController(client)
-	controllers.InitImageController(client)
+	client := connectMongoDB()    
+	platform.NewUserDB(client)
+	platform.NewCommentsDB(client)
+	platform.NewLikesDB(client)
+	platform.NewPostDB(client)
 	controllers.InitAuthController(client)
 
 	router := mux.NewRouter()
@@ -62,7 +70,7 @@ func main() {
 	router.HandleFunc("/comment", controllers.CreateComment).Methods("POST", "OPTIONS")
 
 	protected := router.PathPrefix("/").Subrouter()
-	protected.Use(middleware.AuthMiddleware)
+	protected.Use(middleware.AuthMiddleware)  		// for authorisation 
 
 	protected.HandleFunc("/user", controllers.GetAuthenticatedUser).Methods("GET", "OPTIONS")
 	protected.HandleFunc("/user", controllers.DeleteUser).Methods("DELETE", "OPTIONS")

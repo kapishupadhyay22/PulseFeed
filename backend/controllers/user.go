@@ -3,21 +3,18 @@ package controllers
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"go-image-api/middleware"
 	"go-image-api/models"
+	"go-image-api/platform"
 	"net/http"
 	"time"
-
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
-var userCollection *mongo.Collection
+// var userCollection *mongo.Collection
 
-func InitUserController(client *mongo.Client) {
-	userCollection = client.Database("mediaDB").Collection("users")
-}
+// func NewUserDB(client *mongo.Client) {
+// 	userCollection = client.Database("myDB").Collection("users")
+// }
 
 func CreateUser(w http.ResponseWriter, r *http.Request) {
 	var user models.User
@@ -29,12 +26,11 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	_, err = userCollection.InsertOne(ctx, user)
+	err = platform.NewUser(ctx, user)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
 	w.WriteHeader(http.StatusCreated)
 }
 
@@ -49,7 +45,7 @@ func DeleteUser(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 
 	// Delete the authenticated user only
-	_, err := userCollection.DeleteOne(ctx, bson.M{"email": authenticatedEmail})
+	err := platform.DeleteUser(ctx, authenticatedEmail)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -60,9 +56,7 @@ func DeleteUser(w http.ResponseWriter, r *http.Request) {
 
 func GetAuthenticatedUser(w http.ResponseWriter, r *http.Request) {
 	authenticatedEmail, ok := r.Context().Value(middleware.UserEmailKey).(string)
-	fmt.Println("getting hre")
 	if !ok || authenticatedEmail == "" {
-		fmt.Println("here ")
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
@@ -70,8 +64,7 @@ func GetAuthenticatedUser(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	var user models.User
-	err := userCollection.FindOne(ctx, bson.M{"email": authenticatedEmail}).Decode(&user)
+	user, err := platform.UserByID(ctx, authenticatedEmail)
 	if err != nil {
 		http.Error(w, "User not found", http.StatusNotFound)
 		return

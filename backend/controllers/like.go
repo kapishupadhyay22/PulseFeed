@@ -4,18 +4,16 @@ import (
 	"context"
 	"encoding/json"
 	"go-image-api/models"
+	"go-image-api/platform"
 	"net/http"
 	"time"
-
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
-var likeCollection *mongo.Collection
+// var likeCollection *mongo.Collection
 
-func InitLikeController(client *mongo.Client) {
-	likeCollection = client.Database("mediaDB").Collection("likes")
-}
+// func InitLikeController(client *mongo.Client) {
+// 	likeCollection = client.Database("myDB").Collection("likes")
+// }
 
 func CreateLike(w http.ResponseWriter, r *http.Request) {
 	var like models.Likes
@@ -28,7 +26,7 @@ func CreateLike(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	_, err = likeCollection.InsertOne(ctx, like)
+	err = platform.Like(ctx, like)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -49,10 +47,11 @@ func DeleteLike(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	_, err := likeCollection.DeleteOne(ctx, bson.M{
-		"postID":            postID,
-		"creatorInfo.email": email,
-	})
+	// _, err := likeCollection.DeleteOne(ctx, bson.M{
+	// 	"postID":            postID,
+	// 	"creatorInfo.email": email,
+	// })
+	err := platform.Unlike(ctx, postID, email)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -69,22 +68,25 @@ func GetLikersByPostID(w http.ResponseWriter, r *http.Request) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-
-	cursor, err := likeCollection.Find(ctx, bson.M{"postID": postID})
+	likers, err := platform.LikerOfPost(ctx, postID)
 	if err != nil {
 		http.Error(w, "Error retrieving likes: "+err.Error(), http.StatusInternalServerError)
-		return
 	}
-	defer cursor.Close(ctx)
+	// cursor, err := likeCollection.Find(ctx, bson.M{"postID": postID})
+	// if err != nil {
+	// 	http.Error(w, "Error retrieving likes: "+err.Error(), http.StatusInternalServerError)
+	// 	return
+	// }
+	// defer cursor.Close(ctx)
 
-	var likers []models.CreatedBy
-	for cursor.Next(ctx) {
-		var like models.Likes
-		if err := cursor.Decode(&like); err != nil {
-			continue
-		}
-		likers = append(likers, like.CreatorInfo)
-	}
+	// var likers []models.CreatedBy
+	// for cursor.Next(ctx) {
+	// 	var like models.Likes
+	// 	if err := cursor.Decode(&like); err != nil {
+	// 		continue
+	// 	}
+	// 	likers = append(likers, like.CreatorInfo)
+	// }
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(likers)
@@ -99,7 +101,7 @@ func GetLikeCountByPostID(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	count, err := likeCollection.CountDocuments(ctx, bson.M{"postID": postID})
+	count, err := platform.LikesOnPost(ctx, postID)
 	if err != nil {
 		http.Error(w, "Error counting likes: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -109,4 +111,3 @@ func GetLikeCountByPostID(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
-

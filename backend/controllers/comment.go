@@ -3,23 +3,13 @@ package controllers
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"go-image-api/models"
+	"go-image-api/platform"
 	"net/http"
 	"time"
-
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
-var commentCollection *mongo.Collection
-
-func InitCommentController(client *mongo.Client) {
-	commentCollection = client.Database("mediaDB").Collection("comments")
-}
-
 func CreateComment(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("Posting a comment")
 	var comment models.Comment
 	err := json.NewDecoder(r.Body).Decode(&comment)
 	if err != nil {
@@ -30,7 +20,7 @@ func CreateComment(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	_, err = commentCollection.InsertOne(ctx, comment)
+	err = platform.NewComment(ctx, comment)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -49,7 +39,7 @@ func DeleteComment(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	_, err := commentCollection.DeleteOne(ctx, bson.M{"_id": id})
+	err := platform.DeleteComment(ctx, id)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -68,21 +58,23 @@ func GetCommentsByPostID(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	cursor, err := commentCollection.Find(ctx, bson.M{"postID": postID})
+	comments, err := platform.CommentsOnPost(ctx, postID)
+
+	// cursor, err := commentCollection.Find(ctx, bson.M{"postID": postID})
 	if err != nil {
 		http.Error(w, "Error retrieving comments: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
-	defer cursor.Close(ctx)
+	// defer cursor.Close(ctx)
 
-	var comments []models.Comment
-	for cursor.Next(ctx) {
-		var comment models.Comment
-		if err := cursor.Decode(&comment); err != nil {
-			continue
-		}
-		comments = append(comments, comment)
-	}
+	// var comments []models.Comment
+	// for cursor.Next(ctx) {
+	// 	var comment models.Comment
+	// 	if err := cursor.Decode(&comment); err != nil {
+	// 		continue
+	// 	}
+	// 	comments = append(comments, comment)
+	// }
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(comments)
